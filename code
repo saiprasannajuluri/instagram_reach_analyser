@@ -1,0 +1,47 @@
+import pandas as pd
+import numpy as np
+def find_outliers(arr, k=3):
+    """
+    Detect outliers in a numeric array.
+    Outliers are values more than k standard deviations away from the mean.
+    Returns indices of outlier values.
+    """
+    arr = np.array(arr, dtype=float)
+    mean = arr.mean()
+    std = arr.std()
+    mask = np.abs(arr - mean) > k * std
+    return list(np.where(mask)[0])
+
+
+df = pd.read_csv("Instagram_Post_Analytics.csv")
+print("Shape:", df.shape)
+print("Dtypes:\n", df.dtypes)
+print("Nulls per column:\n", df.isnull().sum())
+print("Describe:\n", df.describe())
+df["save_rate_calc"] = df["saves"] / df["impressions"]
+df["follow_rate_calc"] = df["followers_gained"] / df["impressions"]  
+df["explore_share_calc"] = df["reach"] / df["impressions"]           
+df["engagement_calc"] = (df["likes"] + df["comments"] + df["shares"]) / df["impressions"]
+hook_dict = {
+    "question": ["?", "what", "why", "how"],
+    "number": ["0","1","2","3","4","5","10","20","100"],
+    "contrarian": ["never", "wrong", "myth", "mistake"],
+    "story": ["once", "journey", "story", "experience"],
+    "how-to": ["how to", "step", "guide", "tutorial"]
+}
+
+def tag_hook(caption):
+    caption_lower = str(caption).lower()
+    for hook, keywords in hook_dict.items():
+        if any(kw in caption_lower for kw in keywords):
+            return hook
+    return "other"
+
+
+if "caption" in df.columns:
+    df["hook_type"] = df["caption"].apply(tag_hook)
+else:
+    df["hook_type"] = "other"
+
+grouped = df.groupby("hook_type")[["save_rate_calc", "follow_rate_calc"]].mean().sort_values("save_rate_calc", ascending=False)
+print("\nGrouped by hook type:\n")
